@@ -2,7 +2,9 @@
 import { computed, onMounted, onUnmounted, provide, ref, watch, nextTick } from 'vue';
 import gsap from 'gsap';
 import { useDiceSession } from '@/composables/useDiceSession.js';
+import { useAppUpdate } from '@/composables/useAppUpdate.js';
 import AppHeader from '@/components/AppHeader.vue';
+import UpdateBanner from '@/components/UpdateBanner.vue';
 import StepIntro from '@/components/StepIntro.vue';
 import StepSetup from '@/components/StepSetup.vue';
 import StepRoll from '@/components/StepRoll.vue';
@@ -11,6 +13,8 @@ import StepCleared from '@/components/StepCleared.vue';
 
 const session = useDiceSession();
 provide('diceSession', session);
+
+const { state: updateState, checkForAppUpdate } = useAppUpdate();
 
 const root = ref(null);
 const panel = ref(null);
@@ -35,6 +39,7 @@ const stepComponent = computed(() => {
 
 function onOnline() {
   session.setOnline(true);
+  checkForAppUpdate();
 }
 function onOffline() {
   session.setOnline(false);
@@ -93,6 +98,7 @@ watch(
 <template>
   <div ref="root" class="dice-atmosphere flex min-h-dvh flex-col">
     <AppHeader data-anim="header" />
+    <UpdateBanner />
 
     <main class="flex flex-1 flex-col py-8 sm:py-10">
       <div class="container-site flex flex-1 flex-col">
@@ -117,6 +123,8 @@ watch(
           Runs entirely in your browser. No accounts. No servers for entropy.
         </p>
         <p class="shrink-0">
+          <span class="font-mono tabular-nums" title="App version">v{{ updateState.version }}</span>
+          ·
           <a class="link link-hover" href="https://www.theqrl.org" rel="noopener">theqrl.org</a>
           ·
           <a class="link link-hover" href="https://docs.theqrl.org" rel="noopener">docs</a>
