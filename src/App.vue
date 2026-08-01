@@ -119,9 +119,6 @@ watch(
 
     <footer class="border-t border-base-content/10 py-6">
       <div class="container-site flex flex-col gap-2 text-base/7 text-base-content/60 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:text-sm/6">
-        <p class="max-w-[48ch] text-pretty">
-          Runs entirely in your browser. No accounts. No servers for entropy.
-        </p>
         <p class="shrink-0">
           <span class="font-mono tabular-nums" title="App version">v{{ updateState.version }}</span>
           ·
