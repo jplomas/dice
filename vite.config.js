@@ -6,8 +6,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
 
 const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8'));
-const buildTime = new Date().toISOString();
 const appVersion = pkg.version;
+// Vite may evaluate this config more than once — reuse one id for the whole build.
+process.env.DICE_BUILD_ID ||= `${appVersion}+${Date.now()}`;
+const buildId = process.env.DICE_BUILD_ID;
 
 function writeVersionFile(outDir = 'public') {
   mkdirSync(outDir, { recursive: true });
@@ -16,7 +18,7 @@ function writeVersionFile(outDir = 'public') {
     `${JSON.stringify(
       {
         version: appVersion,
-        builtAt: buildTime,
+        buildId,
       },
       null,
       2,
@@ -29,7 +31,7 @@ writeVersionFile('public');
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
-    __APP_BUILT_AT__: JSON.stringify(buildTime),
+    __APP_BUILD_ID__: JSON.stringify(buildId),
   },
   plugins: [
     vue(),
@@ -39,13 +41,11 @@ export default defineConfig({
         writeVersionFile('public');
       },
       closeBundle() {
-        // Ensure dist has a fresh copy even if workbox already ran.
         writeVersionFile('dist');
       },
     },
     VitePWA({
       registerType: 'prompt',
-      // Registered manually in useAppUpdate so we can drive reload UI.
       injectRegister: false,
       includeAssets: [
         'favicon.ico',
@@ -78,7 +78,6 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Do not precache version.json — it must be fetched from the network.
         globPatterns: [
           '**/*.{js,css,html,ico,svg,png,woff2}',
           'words.json',

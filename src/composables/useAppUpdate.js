@@ -5,8 +5,9 @@ const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 const state = reactive({
   version: typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0',
-  builtAt: typeof __APP_BUILT_AT__ !== 'undefined' ? __APP_BUILT_AT__ : '',
+  buildId: typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : '',
   remoteVersion: null,
+  remoteBuildId: null,
   needRefresh: false,
   offlineReady: false,
   checking: false,
@@ -19,8 +20,24 @@ let registrationRef = null;
 let started = false;
 let checkTimer = null;
 
-function markNeedRefresh(remoteVersion) {
-  if (remoteVersion) state.remoteVersion = remoteVersion;
+function isRemoteNewer(remote) {
+  if (!remote || typeof remote !== 'object') return false;
+  if (remote.buildId && state.buildId && remote.buildId !== state.buildId) {
+    return true;
+  }
+  if (remote.version && remote.version !== state.version) {
+    return true;
+  }
+  return false;
+}
+
+function clearNeedRefresh() {
+  state.needRefresh = false;
+}
+
+function markNeedRefresh(remote) {
+  if (remote?.version) state.remoteVersion = remote.version;
+  if (remote?.buildId) state.remoteBuildId = remote.buildId;
   state.needRefresh = true;
 }
 
@@ -45,17 +62,13 @@ export async function checkForAppUpdate() {
   try {
     const remote = await fetchRemoteVersion();
     state.remoteVersion = remote.version ?? null;
+    state.remoteBuildId = remote.buildId ?? null;
     state.lastCheckedAt = new Date().toISOString();
 
-    const versionChanged =
-      Boolean(remote.version) && remote.version !== state.version;
-    const buildChanged =
-      Boolean(remote.builtAt) &&
-      Boolean(state.builtAt) &&
-      remote.builtAt !== state.builtAt;
-
-    if (versionChanged || buildChanged) {
-      markNeedRefresh(remote.version);
+    if (isRemoteNewer(remote)) {
+      markNeedRefresh(remote);
+    } else {
+      clearNeedRefresh();
     }
 
     if (registrationRef) {
@@ -77,7 +90,6 @@ export function applyAppUpdate() {
     applyUpdateFn(true);
     return;
   }
-  // Fallback if SW callback missing: hard reload after unregister attempt.
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(async (regs) => {
       await Promise.all(regs.map((r) => r.unregister()));
@@ -96,8 +108,15 @@ export function startAppUpdateWatcher() {
 
   applyUpdateFn = registerSW({
     immediate: true,
-    onNeedRefresh() {
-      markNeedRefresh(state.remoteVersion);
+    async onNeedRefresh() {
+      // Only surface the banner when version.json confirms a different build.
+      // Avoids "1.0.1 ready (you have 1.0.1)" from spurious SW events.
+      const needed = await checkForAppUpdate();
+      if (!needed && registrationRef?.waiting) {
+        // Waiting worker but same build id — activate quietly on next safe reload
+        // without a contradictory banner. Prefer showing nothing.
+        clearNeedRefresh();
+      }
     },
     onOfflineReady() {
       state.offlineReady = true;
@@ -116,7 +135,6 @@ export function startAppUpdateWatcher() {
     checkForAppUpdate();
   });
 
-  // Visibility change: re-check when user returns to the tab.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && navigator.onLine) {
       checkForAppUpdate();

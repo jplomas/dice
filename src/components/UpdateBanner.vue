@@ -10,6 +10,12 @@ const sensitive = computed(() => {
   return step === 'roll' || step === 'result';
 });
 
+const versionDiffers = computed(
+  () =>
+    Boolean(state.remoteVersion) &&
+    state.remoteVersion !== state.version,
+);
+
 function reloadNow() {
   applyAppUpdate();
 }
@@ -26,13 +32,15 @@ function reloadNow() {
     >
       <p class="min-w-0 text-base/7 text-base-content sm:text-sm/6">
         <span class="font-semibold text-secondary">Update available.</span>
-        Version
-        <span class="font-mono tabular-nums">{{ state.remoteVersion || 'new' }}</span>
-        is ready
-        <span v-if="state.version" class="text-base-content/60">
-          (you have
+        <template v-if="versionDiffers">
+          Version
+          <span class="font-mono tabular-nums">{{ state.remoteVersion }}</span>
+          is ready (you have
           <span class="font-mono tabular-nums">{{ state.version }}</span>).
-        </span>
+        </template>
+        <template v-else>
+          A newer build is ready — refresh to update.
+        </template>
         <span v-if="sensitive" class="block text-base-content/70 sm:inline sm:before:content-['_|_']">
           Finish or wipe this session before reloading.
         </span>
