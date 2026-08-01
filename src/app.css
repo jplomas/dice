@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Self-hosted QRL Dawn fonts (latin variable) */
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("/fonts/source-sans-3.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono.woff2") format("woff2");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --text-hero: clamp(2rem, 1.2rem + 3.5vw, 3.5rem);
+  --text-display: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
+  --text-lead: clamp(1.05rem, 0.98rem + 0.35vw, 1.25rem);
+}
+
+/* Quantum Dawn — from theqrl.org */
+@plugin "daisyui/theme" {
+  name: "qrl-dawn";
+  default: true;
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #0a1720;
+  --color-base-200: #0e1f2b;
+  --color-base-300: #14293a;
+  --color-base-content: #e6eef5;
+  --color-primary: #ffa729;
+  --color-primary-content: #0a1720;
+  --color-secondary: #3fa9ff;
+  --color-secondary-content: #04223c;
+  --color-accent: #3fa9ff;
+  --color-accent-content: #04223c;
+  --color-neutral: #14293a;
+  --color-neutral-content: #e6eef5;
+  --color-info: #3fa9ff;
+  --color-info-content: #04223c;
+  --color-success: #4fb477;
+  --color-success-content: #04140b;
+  --color-warning: #ffa729;
+  --color-warning-content: #0a1720;
+  --color-error: #e85c41;
+  --color-error-content: #1a0500;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.875rem;
+  --border: 1px;
+}
+
+@plugin "daisyui/theme" {
+  name: "qrl-dawn-light";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+  --color-base-100: #f6f8fb;
+  --color-base-200: #eef2f7;
+  --color-base-300: #e2e8f0;
+  --color-base-content: #0a1720;
+  --color-primary: #e8890b;
+  --color-primary-content: #ffffff;
+  --color-secondary: #1e86e0;
+  --color-secondary-content: #ffffff;
+  --color-accent: #1e86e0;
+  --color-accent-content: #ffffff;
+  --color-neutral: #0a1720;
+  --color-neutral-content: #f6f8fb;
+  --color-info: #1e86e0;
+  --color-info-content: #ffffff;
+  --color-success: #2f9e5f;
+  --color-success-content: #ffffff;
+  --color-warning: #b45c09;
+  --color-warning-content: #ffffff;
+  --color-error: #d64328;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.875rem;
+  --border: 1px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-site {
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+
+  .kicker {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    color: var(--color-secondary);
+  }
+
+  .dice-atmosphere {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklab, var(--color-secondary) 18%, transparent), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, color-mix(in oklab, var(--color-primary) 10%, transparent), transparent),
+      var(--color-base-100);
+  }
+
+  .sensitive-blur {
+    filter: blur(6px);
+    user-select: none;
+  }
+
+  .roll-key {
+    @apply relative flex min-h-12 items-center justify-center rounded-field bg-base-200 text-lg/6 font-semibold tabular-nums sm:min-h-10 sm:text-base/6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

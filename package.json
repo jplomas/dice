@@ -1,0 +1,27 @@
+{
+  "name": "dice-theqrl",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline dice-to-mnemonic generator for QRL (dice.theqrl.org)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test src/lib/*.test.js"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0",
+    "vue": "^3.5.26"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@vitejs/plugin-vue": "^6.0.3",
+    "autoprefixer": "^10.4.20",
+    "daisyui": "^5.5.14",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "vite": "^7.3.0",
+    "vite-plugin-pwa": "^1.0.3"
+  }
+}
