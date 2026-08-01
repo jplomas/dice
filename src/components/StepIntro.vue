@@ -68,7 +68,7 @@ onUnmounted(() => {
         <div class="min-w-0">
           <h2 class="text-lg/7 font-semibold tracking-tight sm:text-base/6">Stay offline</h2>
           <p class="mt-1 text-base/7 text-base-content/70 sm:text-sm/6">
-            Prefer airplane mode, or download this site and open it from disk with no network.
+            Prefer airplane mode after the first visit (the app caches for offline use). On a phone, you can optionally add this site to your home screen for easier offline access.
           </p>
         </div>
       </li>

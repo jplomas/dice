@@ -2,7 +2,6 @@
 import { computed, inject, onMounted, ref } from 'vue';
 
 const session = inject('diceSession');
-const menuOpen = ref(false);
 const isLight = ref(false);
 
 function syncTheme() {
@@ -16,7 +15,6 @@ function toggleTheme() {
 }
 
 function wipe() {
-  menuOpen.value = false;
   if (session.state.result || session.state.collector) {
     session.wipeEverything();
   }
@@ -62,7 +60,6 @@ onMounted(syncTheme);
             class="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
             aria-hidden="true"
           />
-          <!-- sun = switch to light (shown in dark); moon = switch to dark (shown in light) -->
           <svg
             v-show="!isLight"
             class="size-5 sm:size-4"
@@ -96,10 +93,9 @@ onMounted(syncTheme);
         </button>
 
         <button
+          v-if="canWipe"
           type="button"
           class="btn btn-ghost btn-sm relative text-error"
-          :class="canWipe ? '' : 'btn-disabled'"
-          :disabled="!canWipe"
           aria-label="Wipe data"
           @click="wipe"
         >
