@@ -41,23 +41,25 @@ onUnmounted(() => {
 
     <aside
       data-stagger
-      class="rounded-box border border-secondary/35 bg-secondary/10 px-4 py-4 sm:px-5 sm:py-5"
+      class="min-w-0 rounded-box border border-secondary/35 bg-secondary/10 p-4 sm:p-5"
       aria-label="Project pedigree"
     >
-      <p class="font-mono text-base/6 text-secondary sm:text-sm/5">QRL security pedigree</p>
-      <p class="mt-2 max-w-[52ch] text-pretty text-base/7 text-base-content sm:text-sm/6">
-        Based on
-        <a
-          class="link link-secondary font-semibold"
-          href="https://github.com/surg0r/dice"
-          rel="noopener"
-          target="_blank"
-        >surg0r/dice</a>
-        — first committed
-        <time datetime="2018-03">March 2018</time>.
-        Polyhedral dice entropy for QRL wallets, years before Coldcard-style “roll your own seed”
-        went mainstream.
-      </p>
+      <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+        <p class="shrink-0 font-mono text-base/6 text-secondary sm:text-sm/5">
+          QRL security pedigree
+        </p>
+        <p class="min-w-0 text-pretty text-base/7 text-base-content sm:text-right sm:text-sm/6">
+          Based on
+          <a
+            class="link link-secondary break-all font-semibold sm:break-normal"
+            href="https://github.com/surg0r/dice"
+            rel="noopener"
+            target="_blank"
+          >surg0r/dice</a>
+          — first committed
+          <time datetime="2018-03">March 2018</time>.
+        </p>
+      </div>
     </aside>
 
     <ul data-stagger class="flex flex-col gap-4" role="list">

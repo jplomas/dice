@@ -4,7 +4,7 @@ Offline dice-to-mnemonic generator for [The Quantum Resistant Ledger](https://ww
 
 **Production URL:** [https://dice.theqrl.org](https://dice.theqrl.org)
 
-Based on [surg0r/dice](https://github.com/surg0r/dice) (first commit March 2018) — polyhedral dice entropy for QRL mnemonics, well before Coldcard-style “roll your own seed” became mainstream.
+Based on [surg0r/dice](https://github.com/surg0r/dice) (first commit March 2018).
 
 Physical dice supply entropy for a 34-word QRL mnemonic. The first two words encode XMSS parameters (hash function + tree height). The remaining 32 words (384 bits) come from your rolls.
 
