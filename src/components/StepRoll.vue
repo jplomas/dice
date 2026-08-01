@@ -1,37 +1,20 @@
 <script setup>
-import { computed, inject, nextTick, ref, watch } from 'vue';
-import gsap from 'gsap';
+import { computed, inject, nextTick, ref } from 'vue';
 
 const session = inject('diceSession');
 const input = ref('');
 const inputEl = ref(null);
-const progressEl = ref(null);
 
-const collector = computed(() => session.state.collector);
-const maxFace = computed(() => collector.value?.maxFace ?? 0);
 const sides = computed(() => session.state.sides);
-const progressPct = computed(() =>
-  Math.round((collector.value?.progress ?? 0) * 100),
+const maxFace = computed(() => session.state.maxFace);
+const bitsPer = computed(() => session.state.bitsPer);
+const progressPct = computed(() => {
+  const needed = session.state.bitsNeeded || 1;
+  return Math.min(100, Math.round((session.state.bitsCollected / needed) * 100));
+});
+const bitsLabel = computed(
+  () => `${session.state.bitsCollected} / ${session.state.bitsNeeded} bits`,
 );
-const bitsLabel = computed(() => {
-  const c = collector.value;
-  if (!c) return '';
-  return `${c.bitsCollected} / ${c.bitsNeeded} bits`;
-});
-
-watch(progressPct, async (pct) => {
-  await nextTick();
-  if (!progressEl.value) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    progressEl.value.style.setProperty('--progress', `${pct}%`);
-    return;
-  }
-  gsap.to(progressEl.value, {
-    '--progress': `${pct}%`,
-    duration: 0.35,
-    ease: 'power2.out',
-  });
-});
 
 function appendDigit(d) {
   if (input.value.length >= 3) return;
@@ -80,7 +63,7 @@ const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clr', '0', 'ok'];
       <p class="text-pretty text-base/7 text-base-content/70 sm:text-sm/6">
         d{{ sides }} · accepted faces
         <span class="tabular-nums font-medium text-base-content">1–{{ maxFace }}</span>
-        · {{ collector?.bitsPer }} bits each
+        · {{ bitsPer }} bits each
       </p>
     </div>
 
@@ -92,22 +75,22 @@ const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clr', '0', 'ok'];
         </p>
       </div>
       <div
-        ref="progressEl"
-        class="h-2 overflow-hidden rounded-full bg-base-300 [--progress:0%]"
+        class="h-2 overflow-hidden rounded-full bg-base-300"
         role="progressbar"
         :aria-valuenow="progressPct"
         aria-valuemin="0"
         aria-valuemax="100"
       >
         <div
-          class="h-full w-(--progress) rounded-full bg-primary transition-[width] duration-300"
+          class="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
+          :style="{ width: progressPct + '%' }"
         />
       </div>
       <p class="text-base/7 text-base-content/55 sm:text-sm/6">
         Accepted
-        <span class="tabular-nums">{{ collector?.stats.accepted ?? 0 }}</span>
+        <span class="tabular-nums">{{ session.state.acceptedCount }}</span>
         · rejected
-        <span class="tabular-nums">{{ collector?.stats.rejected ?? 0 }}</span>
+        <span class="tabular-nums">{{ session.state.rejectedCount }}</span>
       </p>
     </div>
 

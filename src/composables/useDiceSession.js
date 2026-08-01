@@ -25,6 +25,13 @@ function blankState() {
     lastError: '',
     revealed: false,
     online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    // Mirrored from collector — plain object mutations aren't Vue-reactive.
+    bitsCollected: 0,
+    bitsNeeded: 384,
+    bitsPer: 6,
+    maxFace: 64,
+    acceptedCount: 0,
+    rejectedCount: 0,
   };
 }
 
@@ -85,6 +92,22 @@ export function useDiceSession() {
     state.lastMessage = '';
   }
 
+  function syncCollectorProgress() {
+    const c = state.collector;
+    if (!c) {
+      state.bitsCollected = 0;
+      state.acceptedCount = 0;
+      state.rejectedCount = 0;
+      return;
+    }
+    state.bitsCollected = c.bitsCollected;
+    state.bitsNeeded = c.bitsNeeded;
+    state.bitsPer = c.bitsPer;
+    state.maxFace = c.maxFace;
+    state.acceptedCount = c.stats.accepted;
+    state.rejectedCount = c.stats.rejected;
+  }
+
   async function startRolling() {
     state.lastError = '';
     try {
@@ -98,6 +121,7 @@ export function useDiceSession() {
     wipeMnemonicResult(state.result);
     state.result = null;
     state.revealed = false;
+    syncCollectorProgress();
     go('roll');
     return true;
   }
@@ -107,6 +131,7 @@ export function useDiceSession() {
     state.lastError = '';
     state.lastMessage = '';
     const outcome = state.collector.addFace(face);
+    syncCollectorProgress();
     if (!outcome.ok) {
       if (outcome.rejected) {
         state.lastMessage = outcome.reason;
@@ -173,6 +198,9 @@ export function useDiceSession() {
     state.revealed = false;
     state.lastMessage = '';
     state.lastError = '';
+    state.bitsCollected = 0;
+    state.acceptedCount = 0;
+    state.rejectedCount = 0;
     detachBeforeUnload();
     wipeToken.value += 1;
     go('cleared');
