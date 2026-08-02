@@ -1,5 +1,7 @@
 [build]
-  command = "npm run build"
+  # `npm ci` explicitly: lockfile enforcement should be a property of this
+  # repository, not of the build platform's default install heuristics.
+  command = "npm ci && npm run build"
   publish = "dist"
 
 [build.environment]
@@ -13,8 +15,17 @@
     Referrer-Policy = "no-referrer"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
     Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    # Declared here rather than relying on the host to inject it, so the
+    # posture is described by this repo and survives a platform change.
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     # Strict CSP: no third-party scripts/styles; self-hosted only.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
+    # No 'unsafe-inline' for styles: the build emits no inline <style> and no
+    # style="" markup. Dynamic styling goes through the CSSOM, which CSP does
+    # not police. Verified against the production build with a
+    # securitypolicyviolation listener: zero violations.
+    # No blob: in worker-src: the only worker is the classic script at /sw.js.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; require-trusted-types-for 'script'"
 
 # HTML + SW must revalidate so deploys aren't stuck on an old precache.
 [[headers]]
@@ -27,11 +38,6 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
     Service-Worker-Allowed = "/"
-
-[[headers]]
-  for = "/registerSW.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/workbox-*.js"

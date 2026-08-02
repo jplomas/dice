@@ -12,3 +12,6 @@ dev-dist
 .idea
 coverage
 *.log
+
+# Generated at build time from package.json + commit SHA
+public/version.json

@@ -1,3 +1,12 @@
+# =============================================================================
+# DEPRECATED — historical reference only. Companion to legacy/dice.py, which
+# has known entropy defects; see the header of that file.
+#
+# This wordlist itself is correct and is the canonical QRL 4096-entry list.
+# The application uses src/lib/words.json, which has been verified identical
+# to this file entry-for-entry.
+# =============================================================================
+
 words = [
         "aback", "abbey", "abbot", "abide", "ablaze", "able", "aboard", "abode", "abort", "abound", "about", "above",
         "abra", "abroad", "abrupt", "absent", "absorb", "absurd", "accent", "accept", "access", "accord", "accuse",

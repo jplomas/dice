@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# The workflow only reads the repository; nothing here needs write access.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Test and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `npm ci` fails if package.json and the lockfile disagree, which is the
+      # point: the reviewed dependency set is the installed one.
+      - name: Install (lockfile-enforced)
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # The entropy maths is the security-critical part of this project. These
+      # assert properties the unit tests do not: statistical uniformity of the
+      # generated word indices, and that the descriptor bytes match the QRL
+      # address format for every supported parameter combination.
+      - name: Entropy and descriptor property checks
+        run: npm run test:properties
+
+      - name: Report build artefact hashes
+        run: |
+          echo "### Build artefact hashes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          find dist -type f -exec sha256sum {} + | sort -k2 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install (lockfile-enforced)
+        run: npm ci
+
+      - name: Fail on any known vulnerability in shipped dependencies
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Verify registry signatures
+        run: npm audit signatures

@@ -1,27 +1,13 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue';
-import gsap from 'gsap';
+import { inject } from 'vue';
 
 const session = inject('diceSession');
-const el = ref(null);
-
-onMounted(() => {
-  if (!el.value) return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  gsap.from(el.value.querySelector('[data-check]'), {
-    scale: 0.6,
-    autoAlpha: 0,
-    duration: 0.5,
-    ease: 'back.out(1.6)',
-  });
-});
 </script>
 
 <template>
-  <section ref="el" class="flex flex-1 flex-col items-start gap-6 py-6">
+  <section class="flex flex-1 flex-col items-start gap-6 py-6">
     <div
-      data-check
-      class="grid size-14 place-items-center rounded-full bg-success/15 text-success"
+      class="anim-pop grid size-14 place-items-center rounded-full bg-success/15 text-success"
       aria-hidden="true"
     >
       <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -31,7 +17,22 @@ onMounted(() => {
     <div class="flex flex-col gap-3">
       <h1 class="text-balance text-display tracking-tight">Session wiped</h1>
       <p class="max-w-[42ch] text-pretty text-base/7 text-base-content/70 sm:text-sm/6">
-        Rolls, mnemonic, and hexseed were cleared from this page’s memory. Clipboard was cleared when permitted.
+        Rolls, mnemonic, and hexseed were cleared from this page’s memory.
+      </p>
+      <p
+        v-if="session.state.clipboardStatus === 'failed'"
+        class="max-w-[42ch] rounded-box border border-warning/25 bg-warning/10 px-3 py-2 text-pretty text-base/7 text-warning sm:text-sm/6"
+        role="status"
+      >
+        The clipboard could not be cleared — the browser only permits this while the page is
+        focused. If you copied anything by hand, clear your clipboard manually.
+      </p>
+      <p
+        v-else-if="session.state.clipboardStatus === 'cleared'"
+        class="max-w-[42ch] text-pretty text-base/7 text-base-content/70 sm:text-sm/6"
+        role="status"
+      >
+        The clipboard was cleared.
       </p>
     </div>
     <button type="button" class="btn btn-primary btn-lg" @click="session.go('intro')">
