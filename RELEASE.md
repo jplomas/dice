@@ -113,7 +113,15 @@ tag matches `package.json`, tests pass, artefact is self-contained.
 What to tell users, and what to check yourself after publishing:
 
 ```bash
-sha256sum qrl-dice-<version>-offline.html
+sha256sum qrl-dice-<version>-offline.html || shasum -a 256 qrl-dice-<version>-offline.html
+```
+
+`sha256sum` is standard on Linux and present on recent macOS; older macOS
+ships only `shasum`. The published `.sha256` sidecar can be checked directly
+with either:
+
+```bash
+sha256sum -c qrl-dice-<version>-offline.html.sha256 || shasum -a 256 -c qrl-dice-<version>-offline.html.sha256
 ```
 
 Compare against the hash in the release notes, then confirm the release notes
@@ -128,7 +136,7 @@ Rebuild it yourself; the build is reproducible, so the same commit yields a
 byte-identical file:
 
 ```bash
-git checkout v<version> && npm ci && npm run build:offline && sha256sum dist-offline/index.html
+git checkout v<version> && npm ci && npm run build:offline && (sha256sum dist-offline/index.html || shasum -a 256 dist-offline/index.html)
 ```
 
 ---

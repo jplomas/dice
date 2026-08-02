@@ -109,6 +109,14 @@ jobs:
           ${{ steps.artefact.outputs.sha }}
           \`\`\`
 
+          On macOS without \`sha256sum\`, use \`shasum -a 256\` instead. Either tool
+          can also check the published sidecar directly:
+
+          \`\`\`
+          sha256sum -c ${{ steps.artefact.outputs.name }}.sha256
+          shasum -a 256 -c ${{ steps.artefact.outputs.name }}.sha256
+          \`\`\`
+
           Do not trust this page alone. Confirm the same hash against the signed tag:
 
           \`\`\`
@@ -132,7 +140,7 @@ jobs:
           \`\`\`
           git checkout $TAG
           npm ci && npm run build:offline
-          sha256sum dist-offline/index.html
+          sha256sum dist-offline/index.html   # or: shasum -a 256 dist-offline/index.html
           \`\`\`
           EOF
 

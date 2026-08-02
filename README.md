@@ -65,12 +65,13 @@ worker, no storage. Verified in CI on every push by `npm run check:offline`.
 
 ```bash
 # 1. Download the file and its hash from the releases page, then:
-sha256sum qrl-dice-1.0.1-offline.html
+#    (on macOS without sha256sum, use: shasum -a 256 ...)
+sha256sum -c qrl-dice-<version>-offline.html.sha256
 
 # 2. Confirm the same hash against the signed tag — not against the website,
 #    which is the thing this artefact exists to avoid trusting.
-git verify-tag v1.0.1
-git show v1.0.1
+git verify-tag v<version>
+git show v<version>
 ```
 
 Then copy it to the machine you will generate on, **disconnect that machine**,
@@ -80,9 +81,9 @@ Build it yourself — the build is reproducible, so the same commit yields a
 byte-identical file:
 
 ```bash
-git checkout v1.0.1
+git checkout v<version>
 npm ci && npm run build:offline
-sha256sum dist-offline/index.html
+sha256sum dist-offline/index.html   # or: shasum -a 256 dist-offline/index.html
 ```
 
 ## Verifying a build
@@ -94,7 +95,7 @@ artefact. To check that the deployed app matches the published source:
 ```bash
 git checkout <commit-from-footer>
 npm ci && npm run build
-find dist -type f -exec sha256sum {} + | sort -k2
+find dist -type f -exec sha256sum {} + | sort -k2   # macOS: shasum -a 256
 ```
 
 Compare against the hashes in the corresponding release notes.
