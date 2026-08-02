@@ -42,6 +42,22 @@ jobs:
           fi
           echo "$TAG is annotated and signed."
 
+      # The artefact filename and the release-notes heading both come from
+      # package.json, not from the tag. If they disagree, a release tagged
+      # v1.0.2 ships a file called qrl-dice-1.0.1-offline.html -- on an
+      # artefact whose entire purpose is that users verify it by name and hash.
+      - name: Verify the tag matches package.json
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          TAG_VERSION="${TAG#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $TAG implies version $TAG_VERSION but package.json says $PKG_VERSION."
+            echo "::error::Run 'npm version $TAG_VERSION --no-git-tag-version', commit, then re-tag. See RELEASE.md."
+            exit 1
+          fi
+          echo "$TAG matches package.json ($PKG_VERSION)."
+
       - name: Set up Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
