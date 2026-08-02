@@ -28,27 +28,30 @@ jobs:
       - name: Install (lockfile-enforced)
         run: npm ci
 
-      - name: Unit tests
-        run: npm test
+      # Exactly the command Netlify runs to gate a deploy: unit tests, the
+      # entropy/descriptor property checks, both builds, and the offline
+      # self-containment assertion. Running the same script in both places
+      # means CI cannot pass while a deploy would fail.
+      - name: Verified build (same gate as the Netlify deploy)
+        run: npm run build:verified
 
-      - name: Build
-        run: npm run build
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
 
-      # Built and checked on every push, not only at release time, so a change
-      # that breaks self-containment is caught when it lands rather than when
-      # someone tries to cut a release.
-      - name: Build offline artefact
-        run: npm run build:offline
+      # Behaviour no static check can cover: that the offline artefact really
+      # runs from the filesystem and completes a session, and that the hosted
+      # build produces zero violations under the production CSP parsed from
+      # netlify.toml.
+      - name: Browser end-to-end tests
+        run: npm run test:e2e
 
-      - name: Assert the offline artefact is self-contained
-        run: npm run check:offline
-
-      # The entropy maths is the security-critical part of this project. These
-      # assert properties the unit tests do not: statistical uniformity of the
-      # generated word indices, and that the descriptor bytes match the QRL
-      # address format for every supported parameter combination.
-      - name: Entropy and descriptor property checks
-        run: npm run test:properties
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
 
       - name: Report build artefact hashes
         run: |

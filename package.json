@@ -14,12 +14,16 @@
     "test": "node --test src/lib/*.test.js",
     "test:properties": "node --test scripts/properties.test.js",
     "build:offline": "vite build --mode offline",
-    "check:offline": "./scripts/check-offline-artifact.sh"
+    "check:offline": "./scripts/check-offline-artifact.sh",
+    "test:e2e": "playwright test",
+    "verify": "npm test && npm run test:properties",
+    "build:verified": "npm run verify && npm run build && npm run build:offline && npm run check:offline"
   },
   "dependencies": {
     "vue": "3.5.40"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@tailwindcss/postcss": "4.3.3",
     "@vitejs/plugin-vue": "6.0.8",
     "autoprefixer": "10.5.4",

@@ -16,3 +16,5 @@ coverage
 # Generated at build time from package.json + commit SHA
 public/version.json
 dist-offline
+test-results
+playwright-report

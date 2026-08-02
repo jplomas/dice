@@ -1,7 +1,18 @@
 [build]
+  # The gate. Netlify publishes only if this command succeeds, so any failing
+  # check here blocks the deploy outright — no dashboard setting or branch
+  # protection required.
+  #
+  # `build:verified` = unit tests, entropy/descriptor property tests, the
+  # production build, the offline artefact, and its self-containment check.
+  # These are fast (~5s) and need no browser.
+  #
+  # The Playwright suite is NOT run here: it needs a browser download on every
+  # deploy. It runs in GitHub Actions instead — see .github/workflows/ci.yml.
+  #
   # `npm ci` explicitly: lockfile enforcement should be a property of this
   # repository, not of the build platform's default install heuristics.
-  command = "npm ci && npm run build"
+  command = "npm ci && npm run build:verified"
   publish = "dist"
 
 [build.environment]
@@ -25,7 +36,14 @@
     # not police. Verified against the production build with a
     # securitypolicyviolation listener: zero violations.
     # No blob: in worker-src: the only worker is the classic script at /sw.js.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; require-trusted-types-for 'script'"
+    #
+    # `require-trusted-types-for 'script'` is deliberately NOT set. It was
+    # tried and reverted: Vue's runtime writes to Trusted Types sinks
+    # internally, producing violations on every render (caught by
+    # tests/e2e/hosted.spec.js). Enabling it needs a Trusted Types policy
+    # around the framework, which buys little here — the app has no innerHTML
+    # sink of its own and no user-controlled markup.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'"
 
 # HTML + SW must revalidate so deploys aren't stuck on an old precache.
 [[headers]]
