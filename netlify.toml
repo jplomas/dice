@@ -49,13 +49,10 @@
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+# Fonts and the logo are content-hashed into /assets/ by the build, so this
+# one rule covers them.
 [[headers]]
   for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/fonts/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 

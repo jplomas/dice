@@ -54,6 +54,37 @@ rates match theory, that the index space is not constrained, that the descriptor
 bytes match the QRL address format for all 18 parameter combinations, and that
 `buildMnemonic` round-trips. Both suites run in CI on every push.
 
+## Offline release
+
+Each tagged release publishes a **single self-contained HTML file** —
+`qrl-dice-<version>-offline.html` — on the
+[releases page](https://github.com/theQRL/dice/releases/latest). Code, styles,
+fonts, the logo and the 4096-word list are all inlined. It loads no external
+resources and contains no network code at all: no update checks, no service
+worker, no storage. Verified in CI on every push by `npm run check:offline`.
+
+```bash
+# 1. Download the file and its hash from the releases page, then:
+sha256sum qrl-dice-1.0.1-offline.html
+
+# 2. Confirm the same hash against the signed tag — not against the website,
+#    which is the thing this artefact exists to avoid trusting.
+git verify-tag v1.0.1
+git show v1.0.1
+```
+
+Then copy it to the machine you will generate on, **disconnect that machine**,
+and open the file in a browser. No server, no install, no unzip.
+
+Build it yourself — the build is reproducible, so the same commit yields a
+byte-identical file:
+
+```bash
+git checkout v1.0.1
+npm ci && npm run build:offline
+sha256sum dist-offline/index.html
+```
+
 ## Verifying a build
 
 The footer shows a build identity of the form `<version>+<commit>`. It is derived

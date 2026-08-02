@@ -2,6 +2,11 @@
 import { inject } from 'vue';
 
 const session = inject('diceSession');
+
+// True in the downloadable single-file artefact, which has no service worker
+// and no network code at all — the guidance below differs accordingly.
+const isOfflineBuild = __OFFLINE_BUILD__;
+const RELEASES_URL = 'https://github.com/theQRL/dice/releases/latest';
 </script>
 
 <template>
@@ -45,8 +50,22 @@ const session = inject('diceSession');
         <span class="font-mono text-base/7 text-secondary tabular-nums sm:text-sm/6">01</span>
         <div class="min-w-0">
           <h2 class="text-lg/7 font-semibold tracking-tight sm:text-base/6">Stay offline</h2>
-          <p class="mt-1 text-base/7 text-base-content/70 sm:text-sm/6">
-            Prefer airplane mode after the first visit (the app caches for offline use). On a phone, you can optionally add this site to your home screen for easier offline access.
+          <p v-if="isOfflineBuild" class="mt-1 text-base/7 text-base-content/70 sm:text-sm/6">
+            You are running the downloaded offline copy. It contains no network code at all —
+            no updates, no service worker, nothing to phone home. Disconnect and roll.
+          </p>
+          <p v-else class="mt-1 text-base/7 text-base-content/70 sm:text-sm/6">
+            Prefer airplane mode after the first visit (the app caches for offline use). For a
+            stronger guarantee, download the
+            <a
+              class="link link-secondary font-medium"
+              :href="RELEASES_URL"
+              rel="noopener"
+              target="_blank"
+              >single-file offline release</a
+            >
+            — one HTML file with everything inlined, published with a SHA-256 you can verify
+            against a signed tag.
           </p>
         </div>
       </li>

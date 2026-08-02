@@ -15,6 +15,8 @@ provide('diceSession', session);
 
 const { state: updateState, checkForAppUpdate } = useAppUpdate();
 
+const isOfflineBuild = __OFFLINE_BUILD__;
+
 const stepComponent = computed(() => {
   switch (session.state.step) {
     case 'intro':
@@ -64,8 +66,14 @@ onUnmounted(() => {
           class="mb-6 rounded-box border border-warning/30 bg-warning/10 px-4 py-3 text-base/7 text-warning sm:text-sm/6"
           role="status"
         >
-          You appear to be online. The app stops contacting the server once you leave this
-          screen, but for maximum safety disconnect from the network before rolling.
+          <template v-if="isOfflineBuild">
+            You appear to be online. This copy makes no network connections of any kind, but
+            disconnecting still protects you from everything else on the machine.
+          </template>
+          <template v-else>
+            You appear to be online. The app stops contacting the server once you leave this
+            screen, but for maximum safety disconnect from the network before rolling.
+          </template>
         </div>
 
         <!--

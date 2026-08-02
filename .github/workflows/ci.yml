@@ -34,6 +34,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Built and checked on every push, not only at release time, so a change
+      # that breaks self-containment is caught when it lands rather than when
+      # someone tries to cut a release.
+      - name: Build offline artefact
+        run: npm run build:offline
+
+      - name: Assert the offline artefact is self-contained
+        run: npm run check:offline
+
       # The entropy maths is the security-critical part of this project. These
       # assert properties the unit tests do not: statistical uniformity of the
       # generated word indices, and that the descriptor bytes match the QRL

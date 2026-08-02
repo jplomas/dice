@@ -1,5 +1,8 @@
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue';
+// Imported rather than referenced from public/ so the bundler can inline it
+// as a data URI in the single-file offline build.
+import logoUrl from '@/assets/qrl-logo.svg';
 
 const session = inject('diceSession');
 const isLight = ref(false);
@@ -54,7 +57,7 @@ onMounted(syncTheme);
         @click="goHome"
       >
         <img
-          src="/qrl-logo.svg"
+          :src="logoUrl"
           alt=""
           width="96"
           height="32"

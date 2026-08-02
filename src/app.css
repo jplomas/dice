@@ -4,21 +4,21 @@
 /* Self-hosted QRL Dawn fonts (latin variable) */
 @font-face {
   font-family: "Archivo";
-  src: url("/fonts/archivo.woff2") format("woff2");
+  src: url("./assets/fonts/archivo.woff2") format("woff2");
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Source Sans 3";
-  src: url("/fonts/source-sans-3.woff2") format("woff2");
+  src: url("./assets/fonts/source-sans-3.woff2") format("woff2");
   font-weight: 400 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("/fonts/jetbrains-mono.woff2") format("woff2");
+  src: url("./assets/fonts/jetbrains-mono.woff2") format("woff2");
   font-weight: 400 500;
   font-style: normal;
   font-display: swap;
