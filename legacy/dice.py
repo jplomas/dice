@@ -1,3 +1,31 @@
+# =============================================================================
+# DEPRECATED — DO NOT USE TO GENERATE A WALLET YOU INTEND TO FUND.
+#
+# This is the original 2018 generator, kept for historical reference only.
+# Use https://dice.theqrl.org instead.
+#
+# Known defects in this script:
+#
+#   1. Under-collects entropy when bits-per-roll does not divide 12.
+#      `rolls_per_word = BITS/self.bits_per_roll` relies on Python 2
+#      truncating division. For a 32-sided die this yields 2 instead of 2.4,
+#      so each word is built from 10 bits rather than 12. The result carries
+#      320 bits instead of 384, and word indices are confined to [0, 1023] —
+#      a quarter of the wordlist. (320 bits is still far beyond brute force,
+#      but it is not what this script claims to produce.)
+#
+#   2. Silently excludes word index 0. `if w == False` is true when w == 0
+#      under Python 2, so a legitimate all-ones roll sequence is treated as
+#      user error and re-rolled. The word `aback` can never appear.
+#
+#   3. Python 2 only. Uses `print` statements and `raw_input`, and
+#      `tree_height` calls `bin(height/2)`, which raises TypeError on
+#      Python 3. Python 2 reached end of life in January 2020.
+#
+# The current implementation fixes all three; see src/lib/dice.js and the
+# comparison table in README.md.
+# =============================================================================
+
 # dice roll entropy functions to create a qrl mnemonic, ideally using a polyhedral dice..
 
 import words    #qrl mnemonic words for lookup

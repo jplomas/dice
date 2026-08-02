@@ -1,0 +1,131 @@
+name: Release
+
+# Publishes the single-file offline artefact for a signed tag.
+#
+# The artefact is what users are told to download and verify, so the chain
+# from tag to file is deliberately short and auditable: verify the tag
+# signature, build reproducibly from that exact commit, publish the file plus
+# its SHA-256 in the release notes.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build and publish'
+        required: true
+
+permissions:
+  contents: write # required to create the release
+
+jobs:
+  release:
+    name: Build and publish offline artefact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tag
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0 # tag objects and signatures
+
+      - name: Verify the tag is signed
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          if ! git cat-file tag "$TAG" >/dev/null 2>&1; then
+            echo "::error::$TAG is a lightweight tag. Release tags must be annotated and signed (git tag -s)."
+            exit 1
+          fi
+          if ! git cat-file tag "$TAG" | grep -qE 'BEGIN (PGP|SSH) SIGNATURE'; then
+            echo "::error::$TAG carries no signature. Sign it with 'git tag -s $TAG'."
+            exit 1
+          fi
+          echo "$TAG is annotated and signed."
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install (lockfile-enforced)
+        run: npm ci
+
+      - name: Test
+        run: |
+          npm test
+          npm run test:properties
+
+      - name: Build offline artefact
+        run: npm run build:offline
+
+      - name: Assert the artefact is self-contained
+        run: npm run check:offline
+
+      - name: Name and hash the artefact
+        id: artefact
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          NAME="qrl-dice-${VERSION}-offline.html"
+          mv dist-offline/index.html "$NAME"
+          SHA=$(sha256sum "$NAME" | cut -d' ' -f1)
+          {
+            echo "name=$NAME"
+            echo "sha=$SHA"
+            echo "version=$VERSION"
+          } >> "$GITHUB_OUTPUT"
+          sha256sum "$NAME" > "$NAME.sha256"
+
+      - name: Write release notes
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          cat > NOTES.md <<EOF
+          ## Offline release — QRL Dice Mnemonic ${{ steps.artefact.outputs.version }}
+
+          A single self-contained HTML file. Everything — code, styles, fonts and the
+          4096-word list — is inlined. It loads no external resources and contains no
+          network code: no update checks, no service worker, no storage.
+
+          ### Verify before you use it
+
+          \`\`\`
+          sha256sum ${{ steps.artefact.outputs.name }}
+          ${{ steps.artefact.outputs.sha }}
+          \`\`\`
+
+          Do not trust this page alone. Confirm the same hash against the signed tag:
+
+          \`\`\`
+          git verify-tag $TAG
+          git show $TAG
+          \`\`\`
+
+          ### Use it
+
+          1. Download and verify the hash above.
+          2. Copy it to the machine you will generate on.
+          3. **Disconnect that machine from the network.**
+          4. Open the file in a browser. No server, no install.
+          5. Roll real dice. Write the phrase on paper or metal — there is no copy button,
+             deliberately: the clipboard is readable by every program on the machine.
+
+          ### Rebuild it yourself
+
+          The build is reproducible; the same commit yields a byte-identical file.
+
+          \`\`\`
+          git checkout $TAG
+          npm ci && npm run build:offline
+          sha256sum dist-offline/index.html
+          \`\`\`
+          EOF
+
+      - name: Publish release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          body_path: NOTES.md
+          files: |
+            ${{ steps.artefact.outputs.name }}
+            ${{ steps.artefact.outputs.name }}.sha256
+          fail_on_unmatched_files: true

@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+# The workflow only reads the repository; nothing here needs write access.
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Test and build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `npm ci` fails if package.json and the lockfile disagree, which is the
+      # point: the reviewed dependency set is the installed one.
+      - name: Install (lockfile-enforced)
+        run: npm ci
+
+      # Exactly the command Netlify runs to gate a deploy: unit tests, the
+      # entropy/descriptor property checks, both builds, and the offline
+      # self-containment assertion. Running the same script in both places
+      # means CI cannot pass while a deploy would fail.
+      - name: Verified build (same gate as the Netlify deploy)
+        run: npm run build:verified
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # Behaviour no static check can cover: that the offline artefact really
+      # runs from the filesystem and completes a session, and that the hosted
+      # build produces zero violations under the production CSP parsed from
+      # netlify.toml.
+      - name: Browser end-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+      - name: Report build artefact hashes
+        run: |
+          echo "### Build artefact hashes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          find dist -type f -exec sha256sum {} + | sort -k2 >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install (lockfile-enforced)
+        run: npm ci
+
+      - name: Fail on any known vulnerability in shipped dependencies
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Verify registry signatures
+        run: npm audit signatures

@@ -146,6 +146,12 @@ export function createEntropyCollector(sides) {
   let rejected = 0;
   let totalAttempts = 0;
 
+  /** Accepted-face histogram, 1-based faces stored at index face-1. */
+  const acceptedFaceCounts = new Array(maxFace).fill(0);
+  let longestRun = 0;
+  let currentRun = 0;
+  let lastFace = null;
+
   function takeWordFromBits() {
     const bits = bitBuffer.splice(0, WORD_BITS);
     const bitstr = bits.join('');
@@ -177,6 +183,23 @@ export function createEntropyCollector(sides) {
     get stats() {
       return { accepted, rejected, totalAttempts };
     },
+    /**
+     * Observed distribution of accepted faces, plus the longest run of
+     * identical consecutive faces.
+     *
+     * This exists so the interface can show the user their own input. The
+     * application cannot verify that a physical die is fair or that the
+     * numbers typed were actually rolled — the user is the entropy source —
+     * but presenting the distribution lets them judge it themselves rather
+     * than trusting a claim the software never checks.
+     */
+    get faceStats() {
+      return {
+        counts: acceptedFaceCounts.slice(0, maxFace),
+        longestRun,
+        distinctFaces: acceptedFaceCounts.reduce((n, c) => (c > 0 ? n + 1 : n), 0),
+      };
+    },
     /** @returns {{ ok: true, rejected?: false } | { ok: false, rejected: true, reason: string } | { ok: false, error: string }} */
     addFace(face) {
       if (this.isComplete) {
@@ -199,6 +222,10 @@ export function createEntropyCollector(sides) {
       }
 
       accepted += 1;
+      acceptedFaceCounts[face - 1] += 1;
+      currentRun = face === lastFace ? currentRun + 1 : 1;
+      if (currentRun > longestRun) longestRun = currentRun;
+      lastFace = face;
 
       if (dividesEvenly) {
         pendingRolls.push(value);
@@ -237,6 +264,11 @@ export function createEntropyCollector(sides) {
       accepted = 0;
       rejected = 0;
       totalAttempts = 0;
+      // The face histogram is roll data — wipe it with everything else.
+      acceptedFaceCounts.fill(0);
+      longestRun = 0;
+      currentRun = 0;
+      lastFace = null;
     },
   };
 }

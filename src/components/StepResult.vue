@@ -2,23 +2,7 @@
 import { inject, ref } from 'vue';
 
 const session = inject('diceSession');
-const copied = ref('');
 const confirmWipe = ref(false);
-
-async function copy(kind) {
-  const result = session.state.result;
-  if (!result) return;
-  const text = kind === 'mnemonic' ? result.phrase : result.hexseed;
-  try {
-    await session.copyText(text);
-    copied.value = kind;
-    setTimeout(() => {
-      if (copied.value === kind) copied.value = '';
-    }, 2500);
-  } catch {
-    copied.value = '';
-  }
-}
 
 function toggleReveal() {
   session.toggleRevealed();
@@ -31,7 +15,9 @@ function toggleReveal() {
       <p class="kicker">Complete</p>
       <h1 class="text-balance text-display tracking-tight">Your mnemonic is ready</h1>
       <p class="max-w-[48ch] text-pretty text-base/7 text-base-content/70 sm:text-sm/6">
-        Write it down offline. Never photograph it. Clipboard copies are cleared after 60 seconds when the browser allows.
+        Write it down offline, on paper or metal. Never photograph it, and never paste it into
+        another application — the clipboard is readable by every program on this machine, and
+        clipboard history tools keep a copy on disk.
       </p>
     </div>
 
@@ -58,16 +44,6 @@ function toggleReveal() {
           •••• •••• •••• · tap Reveal when ready to write it down
         </p>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <button
-          type="button"
-          class="btn btn-secondary btn-sm"
-          :disabled="!session.state.revealed"
-          @click="copy('mnemonic')"
-        >
-          {{ copied === 'mnemonic' ? 'Copied' : 'Copy mnemonic' }}
-        </button>
-      </div>
     </div>
 
     <div class="flex flex-col gap-3 border-t border-base-content/10 pt-6">
@@ -84,14 +60,6 @@ function toggleReveal() {
       >
         Hidden until revealed
       </p>
-      <button
-        type="button"
-        class="btn btn-ghost btn-sm self-start"
-        :disabled="!session.state.revealed"
-        @click="copy('hexseed')"
-      >
-        {{ copied === 'hexseed' ? 'Copied' : 'Copy hexseed' }}
-      </button>
     </div>
 
     <div class="rounded-box border border-error/25 bg-error/5 p-4">

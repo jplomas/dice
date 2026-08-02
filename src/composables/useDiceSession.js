@@ -1,4 +1,9 @@
 import { reactive, ref } from 'vue';
+// Bundled, not fetched: `fetch` is unavailable on the file: scheme, so a
+// runtime fetch would break offline use from a downloaded copy. Bundling also
+// brings the wordlist under the same content hash as the rest of the build.
+import wordlist from '@/lib/words.json';
+import { setUpdateChecksSuspended } from '@/composables/useAppUpdate.js';
 import {
   HASH_FUNCTIONS,
   TREE_HEIGHTS,
@@ -11,6 +16,8 @@ import {
 } from '@/lib/dice.js';
 
 const STEPS = ['intro', 'setup', 'roll', 'result', 'cleared'];
+/** Steps during which the app must not contact the origin. */
+const SENSITIVE_STEPS = ['setup', 'roll', 'result'];
 
 function blankState() {
   return {
@@ -25,6 +32,9 @@ function blankState() {
     lastError: '',
     revealed: false,
     online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    // 'unknown' until a wipe attempts a clear; then 'cleared' or 'failed'.
+    // Never claim the clipboard is clean without having confirmed it.
+    clipboardStatus: 'unknown',
     // Mirrored from collector — plain object mutations aren't Vue-reactive.
     bitsCollected: 0,
     bitsNeeded: 384,
@@ -32,13 +42,15 @@ function blankState() {
     maxFace: 64,
     acceptedCount: 0,
     rejectedCount: 0,
+    faceCounts: [],
+    longestRun: 0,
+    distinctFaces: 0,
   };
 }
 
 const state = reactive(blankState());
 const wipeToken = ref(0);
 
-let clipboardClearTimer = null;
 let beforeUnloadHandler = null;
 
 function detachBeforeUnload() {
@@ -48,10 +60,17 @@ function detachBeforeUnload() {
   }
 }
 
+/** True while the session holds anything a reload would destroy. */
+function hasUnsavedSession() {
+  if (state.step === 'result') return Boolean(state.result);
+  if (state.step === 'roll') return state.bitsCollected > 0;
+  return false;
+}
+
 function attachBeforeUnload() {
-  detachBeforeUnload();
+  if (beforeUnloadHandler) return;
   beforeUnloadHandler = (e) => {
-    if (state.result && state.step === 'result') {
+    if (hasUnsavedSession()) {
       e.preventDefault();
       e.returnValue = '';
     }
@@ -60,15 +79,15 @@ function attachBeforeUnload() {
 }
 
 export function useDiceSession() {
-  async function loadWordlist() {
+  function loadWordlist() {
     if (state.wordlist) return state.wordlist;
-    const res = await fetch('/words.json', { cache: 'force-cache' });
-    if (!res.ok) throw new Error('Failed to load wordlist.');
-    const words = await res.json();
-    if (!Array.isArray(words) || words.length !== 4096) {
-      throw new Error('Wordlist integrity check failed.');
+    // Shape check only. Content integrity comes from the bundle hash, not
+    // from anything checkable here — a 4096-entry list of wrong words would
+    // pass any test this function could perform.
+    if (!Array.isArray(wordlist) || wordlist.length !== 4096) {
+      throw new Error(`Wordlist must contain exactly 4096 words, got ${wordlist?.length}.`);
     }
-    state.wordlist = Object.freeze(words);
+    state.wordlist = Object.freeze(wordlist);
     return state.wordlist;
   }
 
@@ -90,6 +109,10 @@ export function useDiceSession() {
     state.step = step;
     state.lastError = '';
     state.lastMessage = '';
+    // No origin contact from the moment the user starts configuring a wallet
+    // until the session is cleared. `cleared` is safe again — the secrets are
+    // already gone by the time that step is reached.
+    setUpdateChecksSuspended(SENSITIVE_STEPS.includes(step));
   }
 
   function syncCollectorProgress() {
@@ -98,6 +121,9 @@ export function useDiceSession() {
       state.bitsCollected = 0;
       state.acceptedCount = 0;
       state.rejectedCount = 0;
+      state.faceCounts = [];
+      state.longestRun = 0;
+      state.distinctFaces = 0;
       return;
     }
     state.bitsCollected = c.bitsCollected;
@@ -106,12 +132,16 @@ export function useDiceSession() {
     state.maxFace = c.maxFace;
     state.acceptedCount = c.stats.accepted;
     state.rejectedCount = c.stats.rejected;
+    const f = c.faceStats;
+    state.faceCounts = f.counts;
+    state.longestRun = f.longestRun;
+    state.distinctFaces = f.distinctFaces;
   }
 
-  async function startRolling() {
+  function startRolling() {
     state.lastError = '';
     try {
-      await loadWordlist();
+      loadWordlist();
     } catch (e) {
       state.lastError = e.message;
       return false;
@@ -132,6 +162,10 @@ export function useDiceSession() {
     state.lastMessage = '';
     const outcome = state.collector.addFace(face);
     syncCollectorProgress();
+    // Guard from the first accepted roll, not from completion — the rolling
+    // step is the long one, and losing it silently is what drives users to
+    // shortcut the retry.
+    if (state.bitsCollected > 0) attachBeforeUnload();
     if (!outcome.ok) {
       if (outcome.rejected) {
         state.lastMessage = outcome.reason;
@@ -161,34 +195,37 @@ export function useDiceSession() {
     go('result');
   }
 
-  function clearClipboardSoon() {
-    if (clipboardClearTimer) clearTimeout(clipboardClearTimer);
-    clipboardClearTimer = setTimeout(async () => {
-      try {
-        if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText('');
-        }
-      } catch {
-        /* ignore — permission or insecure context */
-      }
-    }, 60_000);
-  }
-
-  async function copyText(text) {
-    await navigator.clipboard.writeText(text);
-    clearClipboardSoon();
-  }
-
-  function wipeEverything() {
-    if (clipboardClearTimer) {
-      clearTimeout(clipboardClearTimer);
-      clipboardClearTimer = null;
+  /**
+   * Best-effort clipboard clear. The app never writes seed material to the
+   * clipboard itself, but the user may have selected and copied it manually.
+   *
+   * `writeText` requires the document to be focused and rejects with
+   * NotAllowedError otherwise, so the outcome is reported rather than
+   * assumed — the UI must not claim a clear that did not happen.
+   */
+  async function clearClipboard() {
+    if (!navigator.clipboard?.writeText) {
+      state.clipboardStatus = 'failed';
+      return false;
     }
     try {
-      if (navigator.clipboard?.writeText) navigator.clipboard.writeText('');
+      await navigator.clipboard.writeText('');
+      state.clipboardStatus = 'cleared';
+      return true;
     } catch {
-      /* ignore */
+      state.clipboardStatus = 'failed';
+      return false;
     }
+  }
+
+  async function wipeEverything() {
+    // Wipe in-memory state first and unconditionally; the clipboard attempt
+    // must never be able to delay or skip it.
+    wipeSessionState();
+    await clearClipboard();
+  }
+
+  function wipeSessionState() {
     if (state.collector) {
       state.collector.wipeAll();
       state.collector = null;
@@ -206,8 +243,8 @@ export function useDiceSession() {
     go('cleared');
   }
 
-  function resetToIntro() {
-    wipeEverything();
+  async function resetToIntro() {
+    await wipeEverything();
     go('intro');
   }
 
@@ -242,7 +279,7 @@ export function useDiceSession() {
     go,
     startRolling,
     submitFace,
-    copyText,
+    clearClipboard,
     wipeEverything,
     resetToIntro,
     setOnline,

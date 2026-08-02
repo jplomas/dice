@@ -1,5 +1,8 @@
 <script setup>
 import { computed, inject, onMounted, ref } from 'vue';
+// Imported rather than referenced from public/ so the bundler can inline it
+// as a data URI in the single-file offline build.
+import logoUrl from '@/assets/qrl-logo.svg';
 
 const session = inject('diceSession');
 const isLight = ref(false);
@@ -24,15 +27,37 @@ const canWipe = computed(
   () => Boolean(session.state.result || session.state.collector),
 );
 
+/** A session the user would not want silently discarded by navigating away. */
+const sessionActive = computed(
+  () => session.state.step === 'roll' || session.state.step === 'result',
+);
+
+function goHome() {
+  if (sessionActive.value) return;
+  session.go('intro');
+}
+
 onMounted(syncTheme);
 </script>
 
 <template>
   <header class="border-b border-base-content/10">
     <div class="container-site flex h-14 items-center justify-between gap-3 sm:h-16">
-      <a href="/" class="flex min-w-0 items-center gap-2.5" aria-label="Homepage">
+      <!--
+        A button, not <a href="/">: a plain link both discards an in-progress
+        session without warning and resolves to the filesystem root when the
+        app is opened from a downloaded copy.
+      -->
+      <button
+        type="button"
+        class="flex min-w-0 items-center gap-2.5 text-left disabled:cursor-default"
+        :disabled="sessionActive"
+        :aria-label="sessionActive ? 'Home (finish or wipe this session first)' : 'Home'"
+        :title="sessionActive ? 'Finish or wipe this session first' : 'Back to start'"
+        @click="goHome"
+      >
         <img
-          src="/qrl-logo.svg"
+          :src="logoUrl"
           alt=""
           width="96"
           height="32"
@@ -46,7 +71,7 @@ onMounted(syncTheme);
             dice.theqrl.org
           </span>
         </span>
-      </a>
+      </button>
 
       <div class="flex shrink-0 items-center gap-1">
         <button

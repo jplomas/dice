@@ -19,6 +19,38 @@ let applyUpdateFn = null;
 let registrationRef = null;
 let started = false;
 let checkTimer = null;
+// While a seed is being generated the app must not talk to the origin at all.
+// A cache-busted poll every 5 minutes writes a timestamped heartbeat with the
+// client's IP into the origin's access log for the whole session, which is
+// targeting metadata about someone who just created a wallet.
+let checksSuspended = false;
+
+function armCheckTimer() {
+  if (checkTimer) clearInterval(checkTimer);
+  checkTimer = setInterval(() => {
+    if (navigator.onLine) checkForAppUpdate();
+  }, CHECK_INTERVAL_MS);
+}
+
+function disarmCheckTimer() {
+  if (checkTimer) clearInterval(checkTimer);
+  checkTimer = null;
+}
+
+/**
+ * Suspend or resume all origin contact. Called by the session state machine:
+ * suspended for `setup`/`roll`/`result`, resumed once back at `intro`.
+ */
+export function setUpdateChecksSuspended(suspended) {
+  if (checksSuspended === suspended) return;
+  checksSuspended = suspended;
+  if (suspended) {
+    disarmCheckTimer();
+  } else if (started) {
+    armCheckTimer();
+    checkForAppUpdate();
+  }
+}
 
 function isRemoteNewer(remote) {
   if (!remote || typeof remote !== 'object') return false;
@@ -55,6 +87,7 @@ async function fetchRemoteVersion() {
  */
 export async function checkForAppUpdate() {
   if (typeof window === 'undefined') return false;
+  if (checksSuspended) return false;
   if (!navigator.onLine) return false;
 
   state.checking = true;
@@ -124,10 +157,7 @@ export function startAppUpdateWatcher() {
     async onRegisteredSW(_url, registration) {
       registrationRef = registration || null;
       await checkForAppUpdate();
-      if (checkTimer) clearInterval(checkTimer);
-      checkTimer = setInterval(() => {
-        if (navigator.onLine) checkForAppUpdate();
-      }, CHECK_INTERVAL_MS);
+      if (!checksSuspended) armCheckTimer();
     },
   });
 
@@ -148,5 +178,6 @@ export function useAppUpdate() {
     checkForAppUpdate,
     applyAppUpdate,
     startAppUpdateWatcher,
+    setUpdateChecksSuspended,
   };
 }
