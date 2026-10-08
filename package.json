@@ -20,7 +20,7 @@
     "build:verified": "npm run verify && npm run build && npm run build:offline && npm run check:offline"
   },
   "dependencies": {
-    "vue": "3.5.40"
+    "vue": "3.5.43"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
